@@ -1,0 +1,17 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="./app.css">
+<title>🍜 吃什么 - esbuild debug 版</title>
+</head>
+<body>
+<div id="app"></div>
+<script>
+  window.addEventListener('error', function(e) {
+    document.body.innerHTML = '<pre style="color:red;padding:20px;font-family:monospace;background:#300">' + e.message + ' @line ' + e.lineno + '\n\n' + (e.error?.stack || e.stack || '') + '</pre>';
+  });
+</script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

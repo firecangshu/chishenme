@@ -1,0 +1,247 @@
+/* src/App.css */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+:root {
+  --bg: #FFF8F0;
+  --card: #FFFFFF;
+  --primary: #FF8C42;
+  --primary-dark: #E67733;
+  --blind: #9B59B6;
+  --text: #3D2C1E;
+  --text-light: #8A7C6E;
+  --border: #F0E8DC;
+}
+body {
+  font-family:
+    -apple-system,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 24px 16px 60px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  text-align: center;
+  padding: 16px 0 24px;
+}
+.header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--primary);
+}
+.subtitle {
+  color: var(--text-light);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.main {
+  flex: 1;
+}
+.btn-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.btn {
+  padding: 12px 28px;
+  border-radius: 16px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn:active {
+  transform: scale(0.96);
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+.btn-blind {
+  background: var(--blind);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+}
+.btn-light {
+  background: #fff;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+}
+.start .btn-row {
+  flex-direction: column;
+}
+.start .btn {
+  width: 100%;
+  font-size: 18px;
+  padding: 16px;
+}
+.presets {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+.chip {
+  padding: 8px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--text-light);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.ask {
+  text-align: center;
+  padding: 24px 0;
+}
+.ask h2 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.ask p {
+  color: var(--text-light);
+  margin-bottom: 20px;
+}
+.input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  font-size: 15px;
+  background: var(--card);
+  margin-bottom: 16px;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.result {
+  text-align: center;
+  padding: 16px 0;
+}
+.dish-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+.dish-emoji {
+  font-size: 48px;
+}
+.dish-name {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0 12px;
+  color: var(--text);
+}
+.dish-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.dish-meta span {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: var(--bg);
+  border-radius: 10px;
+  color: var(--text-light);
+}
+.kcal {
+  background: #FFE8D6 !important;
+  color: var(--primary) !important;
+  font-weight: 600;
+}
+.reason {
+  color: var(--text);
+  margin: 8px 0;
+  line-height: 1.6;
+}
+.light-hint {
+  color: #27AE60;
+  font-size: 13px;
+  margin-top: 8px;
+  font-weight: 600;
+}
+.rolling {
+  padding: 48px 0;
+}
+.slot {
+  font-size: 32px;
+  letter-spacing: 8px;
+  animation: spin 0.2s linear infinite;
+}
+@keyframes spin {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-4px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+.slot-reveal {
+  margin-bottom: 16px;
+}
+.slot-banner {
+  font-size: 24px;
+  letter-spacing: 6px;
+  color: var(--blind);
+}
+.history {
+  margin-top: 24px;
+  padding: 12px 16px;
+  background: var(--card);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--text-light);
+  text-align: center;
+}
+.history-item {
+  display: inline-block;
+  margin: 2px 4px;
+  padding: 2px 8px;
+  background: var(--bg);
+  border-radius: 8px;
+}
+.disclaimer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 16px;
+  font-size: 11px;
+  color: var(--text-light);
+  text-align: center;
+  background: rgba(255, 248, 240, 0.95);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(4px);
+}

@@ -1,0 +1,5 @@
+﻿node_modules/
+chishenme-web/dist/
+chishenme-web/dist-final/
+*.log
+.DS_Store
