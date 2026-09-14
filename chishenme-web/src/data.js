@@ -7,7 +7,7 @@
 // 过敏原：花生 / 海鲜 / 乳制品 / 鸡蛋 / 大豆 / 麸质 / 生食 / 坚果
 // 口味：spicy 0=不辣 1=微辣 2=辣；veggie=true 为素食（无肉无鱼虾，蛋奶素算素）
 
-// === 菜品库（34 道，按常见做法估算热量）===
+// === 菜品库（48 道，按常见做法估算热量）===
 export const DISHES = [
   { name: "麻辣香锅", type: "中餐", region: "川渝", tags: ["重口", "过瘾"], time: 25, price: "中", kcal: 950, spicy: 2, contain: ["猪肉", "鸡肉", "花生", "麸质"], veggie: false },
   { name: "火锅", type: "中餐", region: "川渝", tags: ["治愈", "重口", "聚会"], time: 30, price: "高", kcal: 1200, spicy: 2, contain: ["牛肉", "羊肉", "猪肉", "海鲜"], veggie: false },
@@ -44,6 +44,20 @@ export const DISHES = [
   { name: "关东煮", type: "日料", region: "通用", tags: ["清淡", "治愈"], time: 10, price: "低", kcal: 350, spicy: 0, contain: ["鱼", "虾", "海鲜", "大豆", "猪肉"], veggie: false },
   { name: "南瓜小米粥", type: "中餐", region: "通用", tags: ["清淡", "治愈"], time: 20, price: "低", kcal: 260, spicy: 0, contain: [], veggie: true },
   { name: "紫菜包饭", type: "日料", region: "通用", tags: ["清淡", "快捷"], time: 10, price: "低", kcal: 380, spicy: 0, contain: ["猪肉", "鸡蛋", "大豆", "鱼", "海鲜"], veggie: false },
+  { name: "卤肉盖浇饭", type: "中餐", region: "台式", tags: ["下饭", "治愈"], time: 15, price: "中", kcal: 720, spicy: 0, contain: ["猪肉", "大豆"], veggie: false },
+  { name: "咖喱鸡肉盖浇饭", type: "中餐", region: "日式", tags: ["下饭", "治愈", "浓郁"], time: 20, price: "中", kcal: 680, spicy: 0, contain: ["鸡肉", "乳制品"], veggie: false },
+  { name: "番茄鸡蛋盖浇饭", type: "中餐", region: "通用", tags: ["清淡", "下饭", "快捷"], time: 10, price: "低", kcal: 560, spicy: 0, contain: ["鸡蛋"], veggie: true },
+  { name: "鱼香肉丝盖浇饭", type: "中餐", region: "川渝", tags: ["下饭", "重口"], time: 15, price: "中", kcal: 700, spicy: 1, contain: ["猪肉"], veggie: false },
+  { name: "肥牛盖浇饭", type: "中餐", region: "日式", tags: ["下饭", "治愈", "浓郁"], time: 15, price: "中", kcal: 750, spicy: 0, contain: ["牛肉", "大豆"], veggie: false },
+  { name: "猪脚饭", type: "中餐", region: "潮汕", tags: ["下饭", "治愈", "浓郁"], time: 20, price: "中", kcal: 780, spicy: 0, contain: ["猪肉", "大豆"], veggie: false },
+  { name: "叉烧饭", type: "中餐", region: "广东", tags: ["下饭", "甜咸", "精致"], time: 15, price: "中", kcal: 680, spicy: 0, contain: ["猪肉", "大豆"], veggie: false },
+  { name: "回锅肉盖浇饭", type: "中餐", region: "川渝", tags: ["下饭", "重口", "过瘾"], time: 20, price: "中", kcal: 760, spicy: 1, contain: ["猪肉"], veggie: false },
+  { name: "麻婆豆腐盖浇饭", type: "中餐", region: "川渝", tags: ["下饭", "重口", "麻辣"], time: 15, price: "低", kcal: 620, spicy: 2, contain: ["猪肉", "大豆"], veggie: false },
+  { name: "梅菜扣肉饭", type: "中餐", region: "江浙", tags: ["下饭", "治愈", "浓郁"], time: 30, price: "中", kcal: 820, spicy: 0, contain: ["猪肉", "大豆"], veggie: false },
+  { name: "干炒牛河", type: "中餐", region: "广东", tags: ["重口", "过瘾", "锅气"], time: 15, price: "中", kcal: 720, spicy: 0, contain: ["牛肉", "麸质", "大豆"], veggie: false },
+  { name: "炒米粉", type: "中餐", region: "通用", tags: ["快捷", "过瘾", "锅气"], time: 10, price: "低", kcal: 580, spicy: 0, contain: ["鸡蛋", "大豆"], veggie: true },
+  { name: "炒面", type: "中餐", region: "通用", tags: ["快捷", "过瘾", "锅气"], time: 10, price: "低", kcal: 620, spicy: 0, contain: ["鸡蛋", "麸质", "大豆"], veggie: true },
+  { name: "烧烤", type: "中餐", region: "通用", tags: ["重口", "过瘾", "聚会"], time: 20, price: "中", kcal: 550, spicy: 1, contain: ["羊肉", "牛肉", "猪肉", "鸡肉", "海鲜", "大豆"], veggie: false },
 ];
 
 export const EMOJI_MAP = { 中餐: "🍜", 西餐: "🥗", 日料: "🍣", 饮品: "☕", 小吃: "🍕" };
@@ -85,6 +99,20 @@ export const DISH_IMAGE_MAP = {
   "关东煮": "dish-32.jpg",
   "南瓜小米粥": "dish-33.jpg",
   "紫菜包饭": "dish-34.jpg",
+  "卤肉盖浇饭": "dish-35.jpg",
+  "咖喱鸡肉盖浇饭": "dish-36.jpg",
+  "番茄鸡蛋盖浇饭": "dish-37.jpg",
+  "鱼香肉丝盖浇饭": "dish-38.jpg",
+  "肥牛盖浇饭": "dish-39.jpg",
+  "猪脚饭": "dish-40.jpg",
+  "叉烧饭": "dish-41.jpg",
+  "回锅肉盖浇饭": "dish-42.jpg",
+  "麻婆豆腐盖浇饭": "dish-43.jpg",
+  "梅菜扣肉饭": "dish-44.jpg",
+  "干炒牛河": "dish-45.jpg",
+  "炒米粉": "dish-46.jpg",
+  "炒面": "dish-47.jpg",
+  "烧烤": "dish-48.jpg",
 };
 
 // === 忌口体系 ===
@@ -222,7 +250,6 @@ export function makeReason(dish, lightMode, region) {
   if (lightMode && dish.kcal <= 500) parts.push(`低卡(${dish.kcal}kcal)适合减脂`);
   else if (lightMode) parts.push(`可接受热量(${dish.kcal}kcal)`);
   if (dish.tags.includes("治愈")) parts.push("带治愈感");
-  if (dish.time <= 10) parts.push("10分钟搞定");
   return parts.join("，") || "随机挑选";
 }
 

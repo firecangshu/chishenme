@@ -3,3 +3,5 @@ chishenme-web/dist/
 chishenme-web/dist-final/
 *.log
 .DS_Store
+.workbuddy/
+.wbapp_*.genie

@@ -586,17 +586,25 @@ body::after {
 .slot-reel { will-change: transform; }
 .slot-reel:not(.stopped) {
   animation: slotScroll 1.4s linear infinite;
+  /* 减速时速度变化平滑过渡，而不是瞬间变慢 */
+  transition: animation-duration 0.55s ease-out;
+}
+/* 减速阶段：稍微模糊一点，增强速度感（可选，很轻微） */
+.slot-reel.slowing:not(.stopped) {
+  filter: blur(0.3px);
 }
 @keyframes slotScroll {
   from { transform: translateY(0); }
   to { transform: translateY(-896px); } /* 16行 × 56px，配合首尾相同实现无缝循环 */
 }
 .slot-reel.stopped {
-  animation: slotStop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+  /* 停止时更柔和的 settle 动画：先轻微上冲，再缓慢回落停稳 */
+  animation: slotStop 0.55s cubic-bezier(0.15, 0.85, 0.25, 1.1);
 }
 @keyframes slotStop {
-  0% { transform: translateY(-12px); }
-  55% { transform: translateY(3px); }
+  0% { transform: translateY(-16px); }
+  40% { transform: translateY(4px); }
+  70% { transform: translateY(-1px); }
   100% { transform: translateY(0); }
 }
 .slot-row {
@@ -868,4 +876,369 @@ body::after {
   .dish-name { margin: 8px 0 10px; }
   .brand-badge { width: 72px; height: 72px; margin-bottom: 10px; }
   .header { padding: 8px 0 18px; }
+}
+
+/* ===== 首页第三个卡片：随便（全随机） ===== */
+.hero-btn.random {
+  background: linear-gradient(135deg, #a8e6cf, #88d8b0);
+  border-color: #6fc99a;
+}
+.hero-btn.random:hover {
+  box-shadow: 0 8px 24px rgba(111, 201, 154, 0.35);
+  transform: translateY(-2px);
+}
+.hero-btn.random .hero-title { color: #1a6b4a; }
+.hero-btn.random .hero-desc { color: rgba(26, 107, 74, 0.75); }
+
+/* ===== 开盲盒揭晓仪式 ===== */
+.blindbox-machine {
+  text-align: center;
+  padding: 10px 0 20px;
+  animation: fadeUp 0.4s ease;
+}
+.blindbox-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 18px;
+}
+.blindbox-stage {
+  position: relative;
+  width: 200px;
+  height: 220px;
+  margin: 0 auto 24px;
+  perspective: 600px;
+}
+.blindbox-body {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px;
+  height: 120px;
+  transform-style: preserve-3d;
+}
+/* 盒身 */
+.blindbox-box {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 140px;
+  height: 100px;
+  transform-style: preserve-3d;
+}
+.blindbox-box-front {
+  position: absolute;
+  width: 140px;
+  height: 100px;
+  background: linear-gradient(135deg, #ff8c42, #ff6b35);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4), inset 0 -4px 8px rgba(0,0,0,0.1);
+}
+.blindbox-box-side {
+  position: absolute;
+  right: -12px;
+  top: 4px;
+  width: 12px;
+  height: 96px;
+  background: linear-gradient(180deg, #e55a2b, #c94a1f);
+  border-radius: 0 4px 4px 0;
+  transform: skewY(-5deg);
+}
+.blindbox-question {
+  font-size: 48px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  animation: blindboxPulse 1.5s ease-in-out infinite;
+}
+@keyframes blindboxPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+/* 盒盖 */
+.blindbox-lid {
+  position: absolute;
+  top: -18px;
+  left: -6px;
+  width: 152px;
+  height: 28px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 2;
+}
+.blindbox-lid-top {
+  position: absolute;
+  width: 152px;
+  height: 22px;
+  background: linear-gradient(135deg, #ffa726, #ff8c42);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(255, 140, 66, 0.4);
+}
+.blindbox-lid-side {
+  position: absolute;
+  right: -10px;
+  top: 2px;
+  width: 10px;
+  height: 18px;
+  background: linear-gradient(180deg, #e57a1f, #c96515);
+  border-radius: 0 3px 3px 0;
+  transform: skewY(-5deg);
+}
+/* 丝带 */
+.blindbox-ribbon-v {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 100px;
+  background: linear-gradient(180deg, #e63946, #c1121f);
+  z-index: 1;
+  border-radius: 2px;
+}
+.blindbox-ribbon-h {
+  position: absolute;
+  bottom: 38px;
+  left: 0;
+  width: 140px;
+  height: 18px;
+  background: linear-gradient(90deg, #e63946, #c1121f);
+  z-index: 1;
+  border-radius: 2px;
+}
+.blindbox-bow {
+  position: absolute;
+  top: -36px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 32px;
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+}
+/* 光线（开盒时） */
+.blindbox-rays {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg, rgba(255, 215, 0, 0.6) 10deg, transparent 20deg,
+    transparent 40deg, rgba(255, 180, 50, 0.5) 50deg, transparent 60deg,
+    transparent 80deg, rgba(255, 215, 0, 0.6) 90deg, transparent 100deg,
+    transparent 120deg, rgba(255, 180, 50, 0.5) 130deg, transparent 140deg,
+    transparent 160deg, rgba(255, 215, 0, 0.6) 170deg, transparent 180deg,
+    transparent 200deg, rgba(255, 180, 50, 0.5) 210deg, transparent 220deg,
+    transparent 240deg, rgba(255, 215, 0, 0.6) 250deg, transparent 260deg,
+    transparent 280deg, rgba(255, 180, 50, 0.5) 290deg, transparent 300deg,
+    transparent 320deg, rgba(255, 215, 0, 0.6) 330deg, transparent 340deg,
+    transparent 360deg
+  );
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+/* 开盒动画 */
+.blindbox-stage.opening .blindbox-lid {
+  transform: translateY(-80px) rotate(-25deg) translateX(-10px);
+  opacity: 0;
+}
+.blindbox-stage.opening .blindbox-rays {
+  animation: blindboxRays 1.4s ease-out forwards;
+}
+@keyframes blindboxRays {
+  0% { opacity: 0; transform: translateX(-50%) scale(0.3) rotate(0deg); }
+  30% { opacity: 1; transform: translateX(-50%) scale(1.2) rotate(60deg); }
+  100% { opacity: 0; transform: translateX(-50%) scale(1.8) rotate(180deg); }
+}
+/* 飞出的食物 emoji */
+.blindbox-burst {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.blindbox-burst span {
+  position: absolute;
+  font-size: 28px;
+  opacity: 0;
+  animation: blindboxBurst 1.3s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.06s);
+}
+@keyframes blindboxBurst {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.5); }
+  20% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(
+      calc(cos(var(--i) * 45deg) * 100px),
+      calc(sin(var(--i) * 45deg) * 100px - 60px)
+    ) scale(1.2) rotate(360deg);
+  }
+}
+/* 开始按钮 */
+.blindbox-start {
+  display: inline-block;
+  padding: 14px 40px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8c42, #ff6b35);
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+  animation: blindboxStartPulse 1.8s ease-in-out infinite;
+  transition: transform 0.15s ease;
+}
+.blindbox-start:hover { transform: scale(1.05); }
+.blindbox-start:active { transform: scale(0.97); }
+@keyframes blindboxStartPulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4); }
+  50% { box-shadow: 0 6px 32px rgba(255, 107, 53, 0.65); }
+}
+.blindbox-opening-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-soft);
+  padding: 14px 0;
+  animation: blindboxPulse 1s ease-in-out infinite;
+}
+
+/* ===== 首页问题标题 ===== */
+.home-question {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+/* ===== 轻食开关（合并到忌口页） ===== */
+.light-toggle-row {
+  margin: 16px 0 12px;
+}
+.light-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+.light-toggle:hover {
+  border-color: #6fc99a;
+  background: #f0faf5;
+}
+.light-toggle.on {
+  border-color: #52c41a;
+  background: linear-gradient(135deg, #f6ffed, #e8f8e0);
+}
+.light-toggle-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.light-toggle-text {
+  flex: 1;
+  min-width: 0;
+}
+.light-toggle-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+.light-toggle-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+.light-toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #d9d9d9;
+  border-radius: 12px;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+.light-toggle.on .light-toggle-switch {
+  background: #52c41a;
+}
+.light-toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+.light-toggle.on .light-toggle-knob {
+  transform: translateX(20px);
+}
+
+/* ===== 玩法选择页 ===== */
+.ask-gameplay .opt-card {
+  margin-bottom: 12px;
+}
+.opt-card.random-mode {
+  background: linear-gradient(135deg, #a8e6cf, #88d8b0);
+  border-color: #6fc99a;
+}
+.opt-card.random-mode:hover {
+  box-shadow: 0 6px 20px rgba(111, 201, 154, 0.35);
+  transform: translateY(-2px);
+}
+.opt-card.random-mode .opt-title { color: #1a6b4a; }
+.opt-card.random-mode .opt-desc { color: rgba(26, 107, 74, 0.75); }
+
+.opt-card.blind-mode {
+  background: linear-gradient(135deg, #ffd8a8, #ffc069);
+  border-color: #fa8c16;
+}
+.opt-card.blind-mode:hover {
+  box-shadow: 0 6px 20px rgba(250, 140, 22, 0.35);
+  transform: translateY(-2px);
+}
+.opt-card.blind-mode .opt-title { color: #874d00; }
+.opt-card.blind-mode .opt-desc { color: rgba(135, 77, 0, 0.75); }
+
+.opt-card.slot-mode {
+  background: linear-gradient(135deg, #d3adf7, #b37feb);
+  border-color: #722ed1;
+}
+.opt-card.slot-mode:hover {
+  box-shadow: 0 6px 20px rgba(114, 46, 209, 0.35);
+  transform: translateY(-2px);
+}
+.opt-card.slot-mode .opt-title { color: #391085; }
+.opt-card.slot-mode .opt-desc { color: rgba(57, 16, 133, 0.75); }
+
+/* ===== 步骤提示 ===== */
+.steps-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-soft);
+  margin-top: -8px;
+  margin-bottom: 12px;
 }

@@ -32,6 +32,9 @@ function SlotMachine({ pool, finalDish, mode, onDone }) {
   const ROW_H = 56;
   const [phase, setPhase] = useState("ready"); // ready | spinning
   const [stoppedCols, setStoppedCols] = useState([true, true, true]); // ready 时先静止
+  const [slowingCols, setSlowingCols] = useState([false, false, false]); // 减速中的列
+  const SPEEDS = [1.1, 1.45, 1.8]; // 三列基础滚动速度（秒/循环）
+  const PHASES = [-0.2, -0.6, -1.0]; // 三列起始相位
 
   // 每列滚动内容：70% 菜名 + 30% 纯 emoji 符号混合，第17项=第1项实现无缝循环
   const reels = useMemo(() => {
@@ -82,23 +85,34 @@ function SlotMachine({ pool, finalDish, mode, onDone }) {
   const startSpin = () => {
     setPhase("spinning");
     setStoppedCols([false, false, false]);
+    setSlowingCols([false, false, false]);
   };
 
-  // 依次停止：只在 spinning 阶段启动；第0列1.8s，第1列2.3s，第2列2.8s，停完0.7s揭晓
+  // 依次停止：只在 spinning 阶段启动
+  // 每列先减速（animationDuration 变大）0.7秒，再切换到静止内容，实现真实老虎机的缓慢停留感
+  // 第0列4s开始减速，第1列6s，第2列8s；减速0.7s后停住；最后一列停完0.5s揭晓（总约9秒）
   useEffect(() => {
     if (phase !== "spinning") return;
     const timers = [];
+    const slowStart = [4000, 6000, 8000]; // 每列开始减速的时间
+    const slowDuration = 700; // 减速持续时间（毫秒）
     [0, 1, 2].forEach((col, i) => {
+      // 开始减速
+      timers.push(setTimeout(() => {
+        setSlowingCols(s => { const n = [...s]; n[col] = true; return n; });
+      }, slowStart[i]));
+      // 减速后停住
       timers.push(setTimeout(() => {
         setStoppedCols(s => { const n = [...s]; n[col] = true; return n; });
-        if (i === 2) timers.push(setTimeout(onDone, 700));
-      }, 1800 + i * 500));
+        if (i === 2) timers.push(setTimeout(onDone, 500));
+      }, slowStart[i] + slowDuration));
     });
     return () => timers.forEach(clearTimeout);
   }, [phase, onDone]);
 
   // 跳过：立即停止所有列并揭晓
   const handleSkip = () => {
+    setSlowingCols([false, false, false]);
     setStoppedCols([true, true, true]);
     onDone();
   };
@@ -111,13 +125,15 @@ function SlotMachine({ pool, finalDish, mode, onDone }) {
       <div className="slot-reels">
         {reels.map((reel, col) => {
           const items = phase === "ready" ? readyDisplay[col] : (stoppedCols[col] ? stoppedDisplay[col] : reel);
+          const isSlowing = slowingCols[col] && !stoppedCols[col];
           return (
             <div className="slot-reel-wrap" key={col}>
               <div
-                className={`slot-reel ${stoppedCols[col] ? "stopped" : ""}`}
+                className={`slot-reel ${stoppedCols[col] ? "stopped" : ""} ${isSlowing ? "slowing" : ""}`}
                 style={stoppedCols[col] ? undefined : {
-                  animationDuration: `${1.2 + col * 0.35}s`,
-                  animationDelay: `${-0.2 - col * 0.4}s`,
+                  // 减速阶段速度变为原来的3.5倍（更慢），实现真实老虎机的缓慢停留感
+                  animationDuration: `${isSlowing ? SPEEDS[col] * 3.5 : SPEEDS[col]}s`,
+                  animationDelay: `${PHASES[col]}s`,
                 }}
               >
                 {items.map((dish, i) => (
@@ -146,6 +162,64 @@ function SlotMachine({ pool, finalDish, mode, onDone }) {
     </div>
   );
 }
+
+// ===== 开盲盒组件：结果揭晓仪式 =====
+// ready 静止态（礼物盒，使用者点「开盲盒」才启动）→ opening 开盒动画 → 揭晓
+function BlindBox({ finalDish, onDone }) {
+  const [phase, setPhase] = useState("ready"); // ready | opening
+
+  const openBox = () => {
+    setPhase("opening");
+    // 开盒动画 1.6 秒后揭晓结果
+    setTimeout(onDone, 1600);
+  };
+
+  return (
+    <div className="blindbox-machine">
+      <div className="blindbox-title">🎁 为你准备了一个盲盒</div>
+      <div className={`blindbox-stage ${phase}`}>
+        {/* 光线效果（开盒时显示） */}
+        <div className="blindbox-rays" aria-hidden="true"></div>
+        {/* 盒身 */}
+        <div className="blindbox-body" aria-hidden="true">
+          <div className="blindbox-box">
+            <div className="blindbox-box-front">
+              <span className="blindbox-question">?</span>
+            </div>
+            <div className="blindbox-box-side"></div>
+          </div>
+          {/* 盒盖（开盒时飞起） */}
+          <div className="blindbox-lid" aria-hidden="true">
+            <div className="blindbox-lid-top"></div>
+            <div className="blindbox-lid-side"></div>
+          </div>
+          {/* 丝带 */}
+          <div className="blindbox-ribbon-v" aria-hidden="true"></div>
+          <div className="blindbox-ribbon-h" aria-hidden="true"></div>
+          <div className="blindbox-bow" aria-hidden="true">🎀</div>
+        </div>
+        {/* 开盒时飞出的食物 emoji */}
+        {phase === "opening" && (
+          <div className="blindbox-burst" aria-hidden="true">
+            <span style={{ "--i": 0 }}>🍜</span>
+            <span style={{ "--i": 1 }}>🍣</span>
+            <span style={{ "--i": 2 }}>🍔</span>
+            <span style={{ "--i": 3 }}>🍕</span>
+            <span style={{ "--i": 4 }}>🥗</span>
+            <span style={{ "--i": 5 }}>🍲</span>
+            <span style={{ "--i": 6 }}>🍰</span>
+            <span style={{ "--i": 7 }}>🍩</span>
+          </div>
+        )}
+      </div>
+      {phase === "ready" ? (
+        <button type="button" className="blindbox-start" onClick={openBox}>开盲盒 🎁</button>
+      ) : (
+        <div className="blindbox-opening-text">正在为你揭晓...</div>
+      )}
+    </div>
+  );
+}
 const DISH_IMG = (d) => {
   const f = DISH_IMAGE_MAP[d.name];
   if (!f) return null;
@@ -167,8 +241,10 @@ export default function App() {
   const [avoidCats, setAvoidCats] = useState(null);    // 最终结构化忌口 {spicy,veggie,tags}
   const [lightMode, setLightMode] = useState(false);
   const [result, setResult] = useState(null);
-  const [mode, setMode] = useState("recommend");
+  const [mode, setMode] = useState("slot"); // blindbox_open(开盲盒) | slot(摇老虎机) | random(随便全随机)
+  const [hasAvoid, setHasAvoid] = useState(true); // true=忌口线路(筛选候选池) false=不忌口线路(全随机)
   const [slot, setSlot] = useState(null); // 老虎机状态 {pool, dish, meta, lightMode}，组件内部管 ready/spinning
+  const [blindbox, setBlindbox] = useState(null); // 开盲盒状态 {pool, dish, meta, lightMode}，组件内部管 ready/opening
   const [history, setHistory] = useState([]);
   const [llmCfg, setLlmCfg] = useState(loadLLMCfg); // BYOK，惰性读 localStorage
   const [showCfg, setShowCfg] = useState(false);
@@ -179,16 +255,26 @@ export default function App() {
   // ===== H5 后退：流程 首页0→忌口1→轻食2→结果3 为线性栈 =====
   // 每条历史记录存 {step}；页面内返回按钮 / 安卓返回键 / iOS 侧滑都走浏览器 History，
   // popstate 时以历史记录为准回跳，返回上一步时保留已填的忌口与选择。
+  // depthRef 自维护栈深（pushState 才 +1）：「不忌口」线路会跳过 step1 直达 step2，
+  // 栈深 ≠ state.step，reset/gotoStep 必须用栈深推算，否则 go(-step) 越界成 no-op 卡在结果页。
+  const depthRef = useRef(0);
   useEffect(() => {
     if (!window.history.state) window.history.replaceState({ step: 0 }, "");
-    const onPop = (e) => setStep(e.state?.step ?? 0);
+    const onPop = (e) => {
+      depthRef.current = Math.max(0, depthRef.current - 1);
+      setStep(e.state?.step ?? 0);
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
-  // 前进一步并压栈
+  // 前进一步并压栈；同一步骤重复进入（如结果页「换一个」再推 step3）用 replaceState，
+  // 保持 线性栈 首页0→忌口1→轻食2→结果3，否则 reset() 的 history.go(-d) 会落错层
   const pushStep = (n) => {
     setStep(n);
-    try { window.history.pushState({ step: n }, ""); } catch { setStep(n); }
+    try {
+      if ((window.history.state?.step ?? 0) === n) window.history.replaceState({ step: n }, "");
+      else { window.history.pushState({ step: n }, ""); depthRef.current++; }
+    } catch { setStep(n); }
   };
   // 页面内返回：回到上一条历史（即上一步）
   const backStep = () => {
@@ -196,8 +282,8 @@ export default function App() {
   };
   // 跨级回到指定步骤（用于结果为空时直接回忌口页）
   const gotoStep = (t) => {
-    const d = window.history.state?.step ?? 0;
-    if (t !== d) window.history.go(t - d);
+    const d = depthRef.current;
+    if (t !== d) { window.history.go(t - d); depthRef.current = t; }
   };
 
   // 背景「美食满天飞」：按视口均匀网格定位，每个食物只在原位轻柔浮动，
@@ -249,14 +335,24 @@ export default function App() {
     return items;
   }, [vp.w, vp.h]);
 
-  function handleRecommend(userMode = "recommend", presetAvoid = "") {
-    setMode(userMode);
+  // 首页分支：有忌口 → 走忌口线路(step1忌口页)；没忌口 → 直接到玩法选择(step2)，候选池为全部34道菜
+  function handleAvoidChoice(wantAvoid, presetAvoid = "") {
+    setHasAvoid(wantAvoid);
     setResult(null);
+    setSlot(null);
+    setBlindbox(null);
     setAvoid("");
     setAvoidCats(null);
+    setLightMode(false);
     setAiMsg(null);
     setAiBusy(false);
-    // 首页预设（如「我不吃辣」）直接解析成已选快捷项
+    if (!wantAvoid) {
+      // 不忌口线路：候选池为全部34道菜，直接到玩法选择页
+      setAvoidCats({ spicy: false, veggie: false, tags: [] });
+      pushStep(2);
+      return;
+    }
+    // 忌口线路：到忌口页（预设忌口直接解析成已选快捷项）
     const pre = parseAvoidText(presetAvoid);
     const ids = [];
     if (pre.spicy) ids.push("spicy");
@@ -265,6 +361,12 @@ export default function App() {
     setQuickAvoid(ids);
     pushStep(1);
     if (avoidRef.current) avoidRef.current.focus();
+  }
+
+  // 玩法选择页点击：设置mode并执行决策（用已有的avoidCats和lightMode筛选候选池）
+  function startGameplay(userMode) {
+    setMode(userMode);
+    runDecision(undefined, userMode); // 显式传mode，避免setState异步闭包旧值
   }
 
   // 快捷项点选切换
@@ -335,6 +437,7 @@ export default function App() {
     };
     const cats = mergeAvoidCats(quickCats, parseAvoidText(avoid));
     setAvoidCats(cats);
+    // lightMode 已由忌口页的轻食开关设置，这里直接进入玩法选择页
     pushStep(2);
   }
 
@@ -343,9 +446,10 @@ export default function App() {
     runDecision(want); // 显式传值，避免读到 setState 前的闭包旧值
   }
 
-  // lightOverride：消除「setState 后同步读取」的闭包旧值问题
-  function runDecision(lightOverride) {
+  // lightOverride / modeOverride：消除「setState 后同步读取」的闭包旧值问题
+  function runDecision(lightOverride, modeOverride) {
     const lm = typeof lightOverride === "boolean" ? lightOverride : lightMode;
+    const curMode = modeOverride || mode;
     const exclude = result?.dish?.name || "";
     // 忌口确定后的针对性候选池：素材库先剔除含忌口材料的菜，再随机分配
     const pool = getCandidatePool(avoidCats, lm);
@@ -361,13 +465,27 @@ export default function App() {
       return;
     }
     setHistory(h => [...h, dish.name]);
-    // 进入老虎机揭晓仪式（ready 静止态，使用者点「开始摇」才启动）
-    setSlot({ pool, dish, meta, lightMode: lm });
+    // 「随便」模式：直接出结果，不经过揭晓仪式
+    if (curMode === "random") {
+      setResult({
+        dish,
+        reason: makeReason(dish, lm, ""),
+        ...meta,
+      });
+      pushStep(3);
+      return;
+    }
+    // 根据模式进入不同的揭晓仪式（ready 静止态，使用者主动点才启动）
+    if (curMode === "blindbox_open") {
+      setBlindbox({ pool, dish, meta, lightMode: lm });
+    } else {
+      setSlot({ pool, dish, meta, lightMode: lm });
+    }
     setResult(null);
     pushStep(3);
   }
 
-  // 老虎机结束：揭晓结果卡（result 非空后老虎机自动隐藏）
+  // 老虎机结束：揭晓结果卡
   function finishSlot() {
     if (!slot?.dish) return;
     setResult({
@@ -377,23 +495,38 @@ export default function App() {
     });
   }
 
+  // 开盲盒结束：揭晓结果卡
+  function finishBlindBox() {
+    if (!blindbox?.dish) return;
+    setResult({
+      dish: blindbox.dish,
+      reason: makeReason(blindbox.dish, blindbox.lightMode, ""),
+      ...blindbox.meta,
+    });
+  }
+
   function reset() {
     setAvoid("");
     setQuickAvoid([]);
     setAvoidCats(null);
     setLightMode(false);
+    setHasAvoid(true);
     setResult(null);
     setSlot(null);
+    setBlindbox(null);
     setHistory([]);
     setAiMsg(null);
     setAiBusy(false);
-    // 一次性退回历史栈底（首页）；history.go 只在目标记录触发一次 popstate 落到 step0
-    const d = window.history.state?.step ?? 0;
-    if (d > 0) window.history.go(-d);
+    // 一次性退回历史栈底（首页）：用自维护栈深而非 state.step（不忌口线路跳过 step1，
+    // 栈深 ≠ step，按 step 推算会 go 越界成 no-op，卡在结果页回不了首页）
+    const d = depthRef.current;
+    if (d > 0) { window.history.go(-d); depthRef.current = 0; }
     else setStep(0);
   }
 
   function changeOne() {
+    // mode 已是最新值（结果页），直接调用 runDecision
+    // random 模式在 runDecision 内部直接出结果，不经过揭晓仪式
     runDecision();
   }
 
@@ -442,39 +575,40 @@ export default function App() {
               aria-label="返回上一步"
             >
               <span className="topbar-arrow" aria-hidden="true">‹</span>
-              {step === 1 ? "返回首页" : step === 2 ? "返回修改忌口" : "返回上一步"}
+              {step === 1 ? "返回首页" : step === 2 ? (hasAvoid ? "返回修改忌口" : "返回首页") : "返回上一步"}
             </button>
           </div>
         )}
 
         {step === 0 && (
           <section className="home">
+            <h2 className="home-question">今天有忌口吗？</h2>
             <button
               className="hero-btn primary"
-              onClick={() => handleRecommend("recommend")}
+              onClick={() => handleAvoidChoice(true)}
             >
-              <span className="hero-icon" aria-hidden="true">🍽️</span>
+              <span className="hero-icon" aria-hidden="true">🚫</span>
               <span className="hero-text">
-                <span className="hero-title">吃啥？</span>
-                <span className="hero-desc">帮我决定，不纠结</span>
+                <span className="hero-title">有，帮我筛掉</span>
+                <span className="hero-desc">选忌口类型，安全过滤后再随机</span>
               </span>
               <span className="hero-arrow" aria-hidden="true">→</span>
             </button>
             <button
-              className="hero-btn blind"
-              onClick={() => handleRecommend("blindbox")}
+              className="hero-btn random"
+              onClick={() => handleAvoidChoice(false)}
             >
-              <span className="hero-icon" aria-hidden="true">🎲</span>
+              <span className="hero-icon" aria-hidden="true">🎉</span>
               <span className="hero-text">
-                <span className="hero-title">摇一个</span>
-                <span className="hero-desc">盲盒惊喜，交给运气</span>
+                <span className="hero-title">没有，随便来</span>
+                <span className="hero-desc">不忌口，{DISHES.length}道菜全随机</span>
               </span>
               <span className="hero-arrow" aria-hidden="true">→</span>
             </button>
             <div className="presets">
-              <button className="preset-chip" onClick={() => handleRecommend("recommend")}>☀️ 中午吃啥</button>
-              <button className="preset-chip" onClick={() => handleRecommend("blindbox")}>🎰 来个盲盒</button>
-              <button className="preset-chip" onClick={() => handleRecommend("recommend", "辣")}>🌶️ 我不吃辣</button>
+              <button className="preset-chip" onClick={() => handleAvoidChoice(true, "辣")}>🌶️ 我不吃辣</button>
+              <button className="preset-chip" onClick={() => handleAvoidChoice(true, "海鲜")}>🦐 海鲜过敏</button>
+              <button className="preset-chip" onClick={() => handleAvoidChoice(false)}>🎲 完全随便</button>
             </div>
           </section>
         )}
@@ -487,6 +621,9 @@ export default function App() {
             <span className="step-line"></span>
             <span className="step-dot">3</span>
           </div>
+        )}
+        {step === 2 && !hasAvoid && (
+          <div className="steps-hint">不忌口 · 全随机</div>
         )}
 
         {step === 1 && (
@@ -603,38 +740,67 @@ export default function App() {
               </div>
             )}
 
+            {/* 轻食开关（合并到忌口页） */}
+            <div className="light-toggle-row">
+              <button
+                type="button"
+                className={`light-toggle ${lightMode ? "on" : ""}`}
+                onClick={() => setLightMode(l => !l)}
+                aria-pressed={lightMode}
+              >
+                <span className="light-toggle-icon" aria-hidden="true">🥗</span>
+                <span className="light-toggle-text">
+                  <span className="light-toggle-title">今天要轻食（≤500 kcal）</span>
+                  <span className="light-toggle-desc">{lightMode ? "已开启，只从低卡池随机" : "点击开启，控制热量"}</span>
+                </span>
+                <span className="light-toggle-switch" aria-hidden="true">
+                  <span className="light-toggle-knob"></span>
+                </span>
+              </button>
+            </div>
+
             <button className="confirm-btn" onClick={confirmAvoid}>
-              {quickAvoid.length > 0 ? `已选 ${quickAvoid.length} 项，确认继续 →` : "确认，继续 →"}
+              {quickAvoid.length > 0 ? `已选 ${quickAvoid.length} 项忌口${lightMode ? "＋轻食" : ""}，确认继续 →` : "确认，继续 →"}
             </button>
           </section>
         )}
 
         {step === 2 && (
-          <section className="ask">
-            <h2>第 2 步 · 需求澄清</h2>
-            <p>今天有减脂 / 控制热量的需求吗？</p>
-            <button className="opt-card light" onClick={() => confirmLight(true)}>
-              <span className="opt-icon" aria-hidden="true">🥗</span>
+          <section className="ask ask-gameplay">
+            <h2>第 2 步 · 选个玩法</h2>
+            <p>{hasAvoid ? "已按你的忌口筛好候选池，选个玩法揭晓吧" : `不忌口，${DISHES.length}道菜全随机，选个玩法吧`}</p>
+            {!hasAvoid && (
+              <button className="opt-card random-mode" onClick={() => startGameplay("random")}>
+                <span className="opt-icon" aria-hidden="true">🎲</span>
+                <span className="opt-text">
+                  <span className="opt-title">随便</span>
+                  <span className="opt-desc">不纠结，直接出结果</span>
+                </span>
+                <span className="opt-check" aria-hidden="true">→</span>
+              </button>
+            )}
+            <button className="opt-card blind-mode" onClick={() => startGameplay("blindbox_open")}>
+              <span className="opt-icon" aria-hidden="true">🎁</span>
               <span className="opt-text">
-                <span className="opt-title">要，推荐轻食</span>
-                <span className="opt-desc">优先低卡 ≤500 kcal，排除高卡</span>
+                <span className="opt-title">开盲盒</span>
+                <span className="opt-desc">{hasAvoid ? "筛选后开盒，有惊喜" : "全随机开盒，有惊喜"}</span>
               </span>
-              <span className="opt-check" aria-hidden="true">✓</span>
+              <span className="opt-check" aria-hidden="true">→</span>
             </button>
-            <button className="opt-card normal" onClick={() => confirmLight(false)}>
-              <span className="opt-icon" aria-hidden="true">🍽️</span>
+            <button className="opt-card slot-mode" onClick={() => startGameplay("slot")}>
+              <span className="opt-icon" aria-hidden="true">🎰</span>
               <span className="opt-text">
-                <span className="opt-title">不用，随便吃</span>
-                <span className="opt-desc">不过滤热量，正常推荐</span>
+                <span className="opt-title">摇老虎机</span>
+                <span className="opt-desc">{hasAvoid ? "筛选后三列滚动，5秒仪式感" : "全随机三列滚动，5秒仪式感"}</span>
               </span>
-              <span className="opt-check" aria-hidden="true">✓</span>
+              <span className="opt-check" aria-hidden="true">→</span>
             </button>
           </section>
         )}
 
         {step === 3 && (
           <section className="result">
-            {slot && !result && (
+            {slot && !result && mode === "slot" && (
               <SlotMachine
                 pool={slot.pool}
                 finalDish={slot.dish}
@@ -642,11 +808,20 @@ export default function App() {
                 onDone={finishSlot}
               />
             )}
+            {blindbox && !result && mode === "blindbox_open" && (
+              <BlindBox
+                finalDish={blindbox.dish}
+                onDone={finishBlindBox}
+              />
+            )}
 
             {result && result.dish && (
               <>
-                {mode === "blindbox" && (
+                {mode === "slot" && (
                   <div className="slot-reveal" aria-hidden="true">🎰 {EMOJIS.join(" ")} 🎰</div>
+                )}
+                {mode === "blindbox_open" && (
+                  <div className="slot-reveal" aria-hidden="true">🎁 {EMOJIS.join(" ")} 🎁</div>
                 )}
                 <div className="dish-card">
                   <div className="dish-emoji" aria-hidden="true">
@@ -660,14 +835,6 @@ export default function App() {
                     <span className="price">💰 {result.dish.price}</span>
                   </div>
                   <div className="reason">💡 {result.reason}</div>
-                  {result.avoidCount > 0 && (
-                    <div className="pool-hint">
-                      🎯 已按 {result.avoidCount} 项忌口，从 {result.total} 道中剔除后剩 {result.poolSize} 道，随机为你挑中这道
-                    </div>
-                  )}
-                  {lightMode && result.dish.kcal <= 500 && (
-                    <div className="light-hint">✅ 属于轻食范围（≤500 kcal）</div>
-                  )}
                 </div>
                 <div className="actions">
                   <button className="action-btn solid" onClick={changeOne}>🔄 换一个</button>
