@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
   decide, makeReason, EMOJIS, EMOJI_MAP, DISH_IMAGE_MAP,
   AVOID_CATEGORIES, parseAvoidText, mergeAvoidCats,
@@ -55,6 +55,79 @@ export default function App() {
   const [aiMsg, setAiMsg] = useState(null); // {type: ok|fallback|warn|info, text}
   const avoidRef = useRef(null);
 
+  // ===== H5 后退：流程 首页0→忌口1→轻食2→结果3 为线性栈 =====
+  // 每条历史记录存 {step}；页面内返回按钮 / 安卓返回键 / iOS 侧滑都走浏览器 History，
+  // popstate 时以历史记录为准回跳，返回上一步时保留已填的忌口与选择。
+  useEffect(() => {
+    if (!window.history.state) window.history.replaceState({ step: 0 }, "");
+    const onPop = (e) => setStep(e.state?.step ?? 0);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  // 前进一步并压栈
+  const pushStep = (n) => {
+    setStep(n);
+    try { window.history.pushState({ step: n }, ""); } catch { setStep(n); }
+  };
+  // 页面内返回：回到上一条历史（即上一步）
+  const backStep = () => {
+    if ((window.history.state?.step ?? 0) > 0) window.history.back();
+  };
+  // 跨级回到指定步骤（用于结果为空时直接回忌口页）
+  const gotoStep = (t) => {
+    const d = window.history.state?.step ?? 0;
+    if (t !== d) window.history.go(t - d);
+  };
+
+  // 背景「美食满天飞」：按视口均匀网格定位，每个食物只在原位轻柔浮动，
+  // 不做穿屏移动，保证空间分布始终均匀；固定种子避免重渲染抖动。
+  const [vp, setVp] = useState(() => ({
+    w: typeof window !== "undefined" ? window.innerWidth : 430,
+    h: typeof window !== "undefined" ? window.innerHeight : 900,
+  }));
+  useEffect(() => {
+    let t;
+    const onResize = () => {
+      clearTimeout(t);
+      t = setTimeout(() => setVp({ w: window.innerWidth, h: window.innerHeight }), 150);
+    };
+    window.addEventListener("resize", onResize);
+    return () => { clearTimeout(t); window.removeEventListener("resize", onResize); };
+  }, []);
+  const FOOD_FLOAT = useMemo(() => {
+    const pool = ["🍜","🍣","🥗","🍔","🍕","🍚","🥟","🍳","🍦","🍰","🍱","🍞","🌮","🍪","🍩","🍲","🥩","🍤","🧀","🥐","🍢","🍙","🥞","🥪"];
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const CELL = 155; // 目标网格间距(px)，按视口推算行列（移动优先，竖屏更饱满）
+    const cols = Math.max(3, Math.round(vp.w / CELL));
+    const rows = Math.max(4, Math.round(vp.h / CELL));
+    const PAD_X = 7, PAD_Y = 6;                 // 四周内缩(%)，避免贴边
+    const spanX = 100 - PAD_X * 2, spanY = 100 - PAD_Y * 2;
+    const items = [];
+    for (let r = 0; r < rows; r++) {
+      const odd = r % 2 === 1;
+      const n = odd ? cols + 1 : cols;         // 奇数行多一个并半格错位 → 斜向交错
+      for (let c = 0; c < n; c++) {
+        const jx = (rnd() - 0.5) * 0.10;
+        const jy = (rnd() - 0.5) * 0.10;
+        const gx = odd ? c / cols : (c + 0.5) / cols;
+        items.push({
+          emoji: pool[(r * (cols + 1) + c) % pool.length],
+          left: PAD_X + gx * spanX + jx,
+          top: PAD_Y + ((r + 0.5) / rows) * spanY + jy,
+          size: 24 + rnd() * 16,
+          dur: 8 + rnd() * 6,                  // 长周期，缓慢平静
+          delay: -rnd() * 14,                  // 负延迟错开相位，不齐步走
+          dx: 18 + rnd() * 26 + (rnd() - 0.5) * 16,    // 统一偏右
+          dy: -(14 + rnd() * 22) + (rnd() - 0.5) * 12, // 统一偏上 → 斜向右上的"风"
+          op: 0.15 + rnd() * 0.12,
+          rot: (rnd() - 0.5) * 20,
+        });
+      }
+    }
+    return items;
+  }, [vp.w, vp.h]);
+
   function handleRecommend(userMode = "recommend", presetAvoid = "") {
     setMode(userMode);
     setResult(null);
@@ -69,7 +142,7 @@ export default function App() {
     if (pre.veggie) ids.push("veggie");
     ids.push(...pre.tags);
     setQuickAvoid(ids);
-    setStep(1);
+    pushStep(1);
     if (avoidRef.current) avoidRef.current.focus();
   }
 
@@ -141,7 +214,7 @@ export default function App() {
     };
     const cats = mergeAvoidCats(quickCats, parseAvoidText(avoid));
     setAvoidCats(cats);
-    setStep(2);
+    pushStep(2);
   }
 
   function confirmLight(want) {
@@ -170,11 +243,10 @@ export default function App() {
       setResult({ dish, reason: dish ? makeReason(dish, lm, "") : "", ...meta });
       if (dish) setHistory(h => [...h, dish.name]);
     }
-    setStep(3);
+    pushStep(3);
   }
 
   function reset() {
-    setStep(0);
     setAvoid("");
     setQuickAvoid([]);
     setAvoidCats(null);
@@ -183,6 +255,10 @@ export default function App() {
     setHistory([]);
     setAiMsg(null);
     setAiBusy(false);
+    // 一次性退回历史栈底（首页）；history.go 只在目标记录触发一次 popstate 落到 step0
+    const d = window.history.state?.step ?? 0;
+    if (d > 0) window.history.go(-d);
+    else setStep(0);
   }
 
   function changeOne() {
@@ -190,7 +266,26 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <>
+      <div className="food-bg" aria-hidden="true">
+        {FOOD_FLOAT.map((f, i) => (
+          <span
+            key={i}
+            style={{
+              left: `${f.left}%`,
+              top: `${f.top}%`,
+              fontSize: `${f.size}px`,
+              animationDuration: `${f.dur}s`,
+              animationDelay: `${f.delay}s`,
+              "--dx": `${f.dx}px`,
+              "--dy": `${f.dy}px`,
+              "--op": f.op.toFixed(2),
+              "--rot": `${f.rot}deg`,
+            }}
+          >{f.emoji}</span>
+        ))}
+      </div>
+      <div className="app">
       <header className="header">
         <div className="brand-badge" aria-hidden="true">
           <span className="brand-emoji-fallback">🍜</span>
@@ -206,6 +301,20 @@ export default function App() {
       </header>
 
       <main className="main">
+        {step >= 1 && (
+          <div className="topbar">
+            <button
+              type="button"
+              className="topbar-back"
+              onClick={backStep}
+              aria-label="返回上一步"
+            >
+              <span className="topbar-arrow" aria-hidden="true">‹</span>
+              {step === 1 ? "返回首页" : step === 2 ? "返回修改忌口" : "返回上一步"}
+            </button>
+          </div>
+        )}
+
         {step === 0 && (
           <section className="home">
             <button
@@ -414,7 +523,6 @@ export default function App() {
                   <div className="dish-meta">
                     <span className="kcal">🔥 约 {result.dish.kcal} kcal</span>
                     <span className="region">📍 {result.dish.region}</span>
-                    <span className="time">⏱ {result.dish.time} min</span>
                     <span className="price">💰 {result.dish.price}</span>
                   </div>
                   <div className="reason">💡 {result.reason}</div>
@@ -438,7 +546,7 @@ export default function App() {
               <div className="empty">
                 <div className="empty-emoji" aria-hidden="true">😅</div>
                 <p>按当前忌口 / 轻食条件筛选后没有匹配的菜，试试减少几项忌口</p>
-                <button className="confirm-btn" onClick={() => setStep(1)}>返回调整忌口</button>
+                <button className="confirm-btn" onClick={() => gotoStep(1)}>返回调整忌口</button>
               </div>
             )}
           </section>
@@ -455,8 +563,9 @@ export default function App() {
       )}
 
       <footer className="disclaimer">
-        ⚠️ 本应用为娱乐决策工具，所有推荐仅供参考，不构成任何医疗、营养、食品安全建议。热量值按常见做法估算，实际可因食材/做法不同有 ±200 kcal 浮动。
+        ⚠️ 本应用为娱乐决策工具，所有推荐和数据仅供参考，不构成任何医疗、营养、食品安全建议。
       </footer>
-    </div>
+      </div>
+    </>
   );
 }
