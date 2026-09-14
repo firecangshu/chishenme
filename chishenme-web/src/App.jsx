@@ -25,6 +25,127 @@ const CATS_TO_IDS = (cats) => {
 };
 
 const EMOJI_FOR = (d) => EMOJI_MAP[d.type] || "🍽️";
+
+// ===== 老虎机组件：结果揭晓仪式 =====
+// ready 静止态（使用者点「开始摇」才启动）→ spinning 三列依次停止 → 中间行对齐最终选中的菜
+function SlotMachine({ pool, finalDish, mode, onDone }) {
+  const ROW_H = 56;
+  const [phase, setPhase] = useState("ready"); // ready | spinning
+  const [stoppedCols, setStoppedCols] = useState([true, true, true]); // ready 时先静止
+
+  // 每列滚动内容：70% 菜名 + 30% 纯 emoji 符号混合，第17项=第1项实现无缝循环
+  const reels = useMemo(() => {
+    const emojiPool = ["🍜","🍣","🥗","🍔","🍕","🍚","🥟","🍳","🍲","🥩","🍤","🧀","🥐","🍢","🍙","🥞","🥪","🌮","🍱","🍛","🍝","🥘","🍖","🦐","🐟","🍗","🌭","🍟","🥨","🍩","🍰","🍦","🍪","🥐","🥯","🥖","🧇","🥞","🧆","🥙","🌯","🍝","🍤","🦞","🦀","🐙","🦑","🍥","🍡","🍧","🍨","🍮","🍯","🍫","🍬","🍭","🍮","🥮","🍯","🥫","🫕","🥗","🫒","🥑","🍆","🥔","🥕","🌽","🌶️","🥒","🥬","🥦","🧄","🧅","🍄","🥜","🌰","🍞","🥐","🥖","🥨","🥯","🥞","🧇","🧀","🍖","🍗","🥩","🥓","🍔","🍟","🌭","🍕","🥪","🥙","🌮","🌯","🥗","🍝","🍜","🍲","🍛","🍣","🍤","🍱","🍘","🍙","🍚","🍢","🍡","🍧","🍨","🍦","🍰","🎂","🍮","🍭","🍬","🍫","🍩","🍪","🥠","🥮","🍯","🥛","☕","🍵","🍶","🍺","🍻","🥂","🍷","🥃","🍸","🍹","🧃","🧉","🧊","🥤","🧋","🧃"];
+    return [0, 1, 2].map(() => {
+      const items = [];
+      for (let i = 0; i < 16; i++) {
+        if (Math.random() < 0.3) {
+          items.push({ __emoji: emojiPool[Math.floor(Math.random() * emojiPool.length)] });
+        } else {
+          items.push(pool[Math.floor(Math.random() * pool.length)]);
+        }
+      }
+      items.push(items[0]); // 首尾相同，动画滚16行后无缝跳回
+      return items;
+    });
+  }, [pool]);
+
+  // ready 态：每列独立随机3行，行内互不重复（不泄露最终答案）
+  const readyDisplay = useMemo(() => {
+    return [0, 1, 2].map(() => {
+      const used = new Set();
+      const pick = () => {
+        let d, t = 0;
+        do { d = pool[Math.floor(Math.random() * pool.length)]; t++; }
+        while (used.has(d.name) && t < 30);
+        used.add(d.name);
+        return d;
+      };
+      return [pick(), pick(), pick()];
+    });
+  }, [pool]);
+
+  // 停住后每列固定3行，finalDish 在中间；上下行随机且6个上下行全局互不重复、不等于答案
+  const stoppedDisplay = useMemo(() => {
+    const used = new Set([finalDish.name]);
+    const pick = () => {
+      let d, t = 0;
+      do { d = pool[Math.floor(Math.random() * pool.length)]; t++; }
+      while (used.has(d.name) && t < 50);
+      used.add(d.name);
+      return d;
+    };
+    return [0, 1, 2].map(() => [pick(), finalDish, pick()]);
+  }, [pool, finalDish]);
+
+  // 开始摇：从静止态进入滚动
+  const startSpin = () => {
+    setPhase("spinning");
+    setStoppedCols([false, false, false]);
+  };
+
+  // 依次停止：只在 spinning 阶段启动；第0列1.8s，第1列2.3s，第2列2.8s，停完0.7s揭晓
+  useEffect(() => {
+    if (phase !== "spinning") return;
+    const timers = [];
+    [0, 1, 2].forEach((col, i) => {
+      timers.push(setTimeout(() => {
+        setStoppedCols(s => { const n = [...s]; n[col] = true; return n; });
+        if (i === 2) timers.push(setTimeout(onDone, 700));
+      }, 1800 + i * 500));
+    });
+    return () => timers.forEach(clearTimeout);
+  }, [phase, onDone]);
+
+  // 跳过：立即停止所有列并揭晓
+  const handleSkip = () => {
+    setStoppedCols([true, true, true]);
+    onDone();
+  };
+
+  return (
+    <div className="slot-machine">
+      <div className="slot-title">
+        🎰 {mode === "blindbox" ? "盲盒摇出今天吃什么" : "为你摇出今天吃什么"}
+      </div>
+      <div className="slot-reels">
+        {reels.map((reel, col) => {
+          const items = phase === "ready" ? readyDisplay[col] : (stoppedCols[col] ? stoppedDisplay[col] : reel);
+          return (
+            <div className="slot-reel-wrap" key={col}>
+              <div
+                className={`slot-reel ${stoppedCols[col] ? "stopped" : ""}`}
+                style={stoppedCols[col] ? undefined : {
+                  animationDuration: `${1.2 + col * 0.35}s`,
+                  animationDelay: `${-0.2 - col * 0.4}s`,
+                }}
+              >
+                {items.map((dish, i) => (
+                  <div className="slot-row" key={`${col}-${i}`} style={{ height: ROW_H }}>
+                    {dish.__emoji ? (
+                      <span className="slot-emoji" style={{ fontSize: 28 }}>{dish.__emoji}</span>
+                    ) : (
+                      <>
+                        <span className="slot-emoji">{EMOJI_FOR(dish)}</span>
+                        <span className="slot-name">{dish.name}</span>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+        <div className="slot-center-frame" aria-hidden="true"></div>
+      </div>
+      {phase === "ready" ? (
+        <button type="button" className="slot-start" onClick={startSpin}>开始摇 🎰</button>
+      ) : (
+        <button type="button" className="slot-skip" onClick={handleSkip}>跳过 ⏭</button>
+      )}
+    </div>
+  );
+}
 const DISH_IMG = (d) => {
   const f = DISH_IMAGE_MAP[d.name];
   if (!f) return null;
@@ -47,7 +168,7 @@ export default function App() {
   const [lightMode, setLightMode] = useState(false);
   const [result, setResult] = useState(null);
   const [mode, setMode] = useState("recommend");
-  const [rolling, setRolling] = useState(false);
+  const [slot, setSlot] = useState(null); // 老虎机状态 {pool, dish, meta, lightMode}，组件内部管 ready/spinning
   const [history, setHistory] = useState([]);
   const [llmCfg, setLlmCfg] = useState(loadLLMCfg); // BYOK，惰性读 localStorage
   const [showCfg, setShowCfg] = useState(false);
@@ -229,21 +350,31 @@ export default function App() {
     // 忌口确定后的针对性候选池：素材库先剔除含忌口材料的菜，再随机分配
     const pool = getCandidatePool(avoidCats, lm);
     const meta = { poolSize: pool.length, total: DISHES.length, avoidCount: countAvoidCats(avoidCats) };
-    const opts = { avoidCats, lightMode: lm, mode, exclude };
-    if (mode === "blindbox") {
-      setRolling(true);
-      setTimeout(() => {
-        const dish = decide(opts);
-        setResult({ dish, reason: dish ? makeReason(dish, lm, "") : "", ...meta });
-        setRolling(false);
-        if (dish) setHistory(h => [...h, dish.name]);
-      }, 1200);
-    } else {
-      const dish = decide(opts);
-      setResult({ dish, reason: dish ? makeReason(dish, lm, "") : "", ...meta });
-      if (dish) setHistory(h => [...h, dish.name]);
+    // 从候选池随机选一道（排除上一道）
+    const available = exclude ? pool.filter(d => d.name !== exclude) : pool;
+    const dish = available.length > 0 ? available[Math.floor(Math.random() * available.length)] : pool[0] || null;
+    if (!dish) {
+      // 候选池为空，直接显示空结果
+      setResult({ dish: null, reason: "", ...meta });
+      setSlot(null);
+      pushStep(3);
+      return;
     }
+    setHistory(h => [...h, dish.name]);
+    // 进入老虎机揭晓仪式（ready 静止态，使用者点「开始摇」才启动）
+    setSlot({ pool, dish, meta, lightMode: lm });
+    setResult(null);
     pushStep(3);
+  }
+
+  // 老虎机结束：揭晓结果卡（result 非空后老虎机自动隐藏）
+  function finishSlot() {
+    if (!slot?.dish) return;
+    setResult({
+      dish: slot.dish,
+      reason: makeReason(slot.dish, slot.lightMode, ""),
+      ...slot.meta,
+    });
   }
 
   function reset() {
@@ -252,6 +383,7 @@ export default function App() {
     setAvoidCats(null);
     setLightMode(false);
     setResult(null);
+    setSlot(null);
     setHistory([]);
     setAiMsg(null);
     setAiBusy(false);
@@ -502,14 +634,16 @@ export default function App() {
 
         {step === 3 && (
           <section className="result">
-            {rolling && (
-              <div className="rolling">
-                <div className="slot-row" aria-hidden="true">{EMOJIS.join(" ")}</div>
-                <p className="rolling-text">旋转中...</p>
-              </div>
+            {slot && !result && (
+              <SlotMachine
+                pool={slot.pool}
+                finalDish={slot.dish}
+                mode={mode}
+                onDone={finishSlot}
+              />
             )}
 
-            {!rolling && result && result.dish && (
+            {result && result.dish && (
               <>
                 {mode === "blindbox" && (
                   <div className="slot-reveal" aria-hidden="true">🎰 {EMOJIS.join(" ")} 🎰</div>
@@ -542,7 +676,7 @@ export default function App() {
               </>
             )}
 
-            {!rolling && result && !result.dish && (
+            {result && !result.dish && (
               <div className="empty">
                 <div className="empty-emoji" aria-hidden="true">😅</div>
                 <p>按当前忌口 / 轻食条件筛选后没有匹配的菜，试试减少几项忌口</p>

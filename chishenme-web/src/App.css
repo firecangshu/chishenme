@@ -531,6 +531,147 @@ body::after {
 
 /* ===== 结果页 ===== */
 .result { text-align: center; }
+
+/* ===== 老虎机揭晓仪式 ===== */
+.slot-machine {
+  background: linear-gradient(160deg, #E8590C 0%, #FA8C16 60%, #FFA940 100%);
+  border-radius: 24px;
+  padding: 20px 16px 16px;
+  box-shadow: 0 12px 32px rgba(232, 89, 12, 0.3);
+  animation: fadeUp 0.35s ease-out;
+}
+.slot-title {
+  text-align: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+.slot-reels {
+  display: flex;
+  gap: 8px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 12px 8px;
+  position: relative;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+.slot-reel-wrap {
+  flex: 1;
+  height: 168px; /* 3行 × 56px */
+  overflow: hidden;
+  border-radius: 10px;
+  position: relative;
+  background: linear-gradient(180deg, #FFFBF5 0%, #FFF4E6 100%);
+}
+/* 上下渐变遮罩，突出中间行 */
+.slot-reel-wrap::before,
+.slot-reel-wrap::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 42px;
+  z-index: 2;
+  pointer-events: none;
+}
+.slot-reel-wrap::before {
+  top: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
+}
+.slot-reel-wrap::after {
+  bottom: 0;
+  background: linear-gradient(0deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%);
+}
+.slot-reel { will-change: transform; }
+.slot-reel:not(.stopped) {
+  animation: slotScroll 1.4s linear infinite;
+}
+@keyframes slotScroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-896px); } /* 16行 × 56px，配合首尾相同实现无缝循环 */
+}
+.slot-reel.stopped {
+  animation: slotStop 0.38s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+@keyframes slotStop {
+  0% { transform: translateY(-12px); }
+  55% { transform: translateY(3px); }
+  100% { transform: translateY(0); }
+}
+.slot-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+.slot-emoji { font-size: 20px; flex-shrink: 0; }
+.slot-name {
+  display: inline-block;
+  width: 70px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+/* 中间行高亮框 */
+.slot-center-frame {
+  position: absolute;
+  left: 8px; right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 56px;
+  border: 2px solid #FA8C16;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 0 0 14px rgba(250, 140, 22, 0.45);
+  z-index: 3;
+}
+.slot-skip {
+  display: block;
+  margin: 14px auto 0;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.45);
+  padding: 8px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.slot-skip:hover { background: rgba(255,255,255,0.28); }
+.slot-skip:active { transform: scale(0.96); }
+/* 开始摇：主按钮，醒目吸引点击 */
+.slot-start {
+  display: block;
+  margin: 16px auto 0;
+  background: #fff;
+  color: #E8590C;
+  border: none;
+  padding: 12px 36px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+  animation: slotPulse 1.6s ease-in-out infinite;
+}
+.slot-start:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2); }
+.slot-start:active { transform: scale(0.96); }
+@keyframes slotPulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15); }
+  50% { box-shadow: 0 4px 20px rgba(255, 255, 255, 0.5), 0 4px 14px rgba(0, 0, 0, 0.15); }
+}
+
 .slot-reveal {
   font-size: 24px;
   letter-spacing: 4px;
@@ -651,20 +792,6 @@ body::after {
 .action-btn.solid:hover { box-shadow: var(--shadow-lg); }
 .action-btn.ghost:hover { border-color: var(--text-soft); }
 .action-btn:active { transform: scale(0.97); }
-
-/* ===== 盲盒滚动 ===== */
-.rolling { padding: 56px 0; text-align: center; }
-.slot-row {
-  font-size: 42px;
-  letter-spacing: 8px;
-  display: inline-block;
-  animation: shake 0.22s linear infinite;
-}
-@keyframes shake {
-  0%, 100% { transform: translateX(0) rotate(-2deg); }
-  50% { transform: translateX(-4px) rotate(2deg); }
-}
-.rolling-text { margin-top: 14px; color: var(--text-soft); font-size: 14px; }
 
 /* ===== 空态 ===== */
 .empty { text-align: center; padding: 44px 0; animation: fadeUp 0.3s ease-out; }
